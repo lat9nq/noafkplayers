@@ -1,5 +1,6 @@
 {
 	"title"	:	"NoAFKPlayers",
 	"type"	:	"ServerContent",
-	"tag"	:	[ "fun" ]
+	"tag"	:	[ "fun" ],
+	"ignore"	: [ ".gitignore" , ".git/*" , "*.jpg" , "LICENSE" , "README.md" ]
 }
