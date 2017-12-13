@@ -21,6 +21,7 @@ local warn = 0
 local delay = 0.500
 
 local function GetTag(ply)
+	if (!(ply:IsValid() and not ply:IsBot())) then return "0" end
 	local id = ply:SteamID()
 	local ids = string.Explode(":", id)
 	return ids[2] .. ids[3]
