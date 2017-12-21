@@ -19,6 +19,7 @@ local kick = 0
 local prep = 0
 local warn = 0
 local delay = 0.500
+local last_ran = 0
 
 local function GetTag(ply)
 	if (!(ply:IsValid() and not ply:IsBot())) then return "0" end
@@ -67,6 +68,13 @@ function SetAfkTime(me, command, arguments)
 	end
 end
 
+local function AFKStatus(caller)
+	caller:PrintMessage(HUD_PRINTCONSOLE, "NoAfkPlayers last ran " .. tostring(SysTime() - last_ran) .. " seconds ago...")
+	for id,x in pairs(afk_time) do
+		caller:PrintMessage(HUD_PRINTCONSOLE, tostring(id) .. ": " .. tostring(math.floor(SysTime() - x)))
+	end
+end
+
 local function Clk()
 	ind = (ind % player.GetCount()) + 1
 	local players = player.GetAll()
@@ -83,6 +91,7 @@ local function Clk()
 	elseif (t + kick < SysTime() + delay) then
 		ply:Kick("Detected AFK after " .. tostring(math.floor(kick/60)).. " minutes")
 	end
+	last_run = SysTime()
 end
 
 local function First() 
@@ -129,3 +138,4 @@ end)
 First()
 concommand.Add("gettag", PrintTag)
 concommand.Add("setafktime", SetAfkTime)
+concommand.Add("afkstatus", AFKStatus)
