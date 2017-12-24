@@ -77,10 +77,31 @@ local function AFKStatus(caller)
 	caller:PrintMessage(HUD_PRINTCONSOLE, "NoAfkPlayers last ran " .. tostring(diff) .. " seconds ago...")
 	if (diff > 1.1) then
 		caller:PrintMessage("PANIC: Trying to retart the timer...")
-		updateTime(player.GetCount())
+		updateTimer(player.GetCount())
 	end
 	for id,x in pairs(afk_time) do
 		caller:PrintMessage(HUD_PRINTCONSOLE, tostring(id) .. ": " .. tostring(math.floor(SysTime() - x)))
+	end
+end
+
+local function AFKReset(caller)
+	if (caller:IsValid() and not caller:IsAdmin()) then
+		caller:PrintMessage("You do not have access to this command!")
+		return
+	end
+
+	table.Empty(afk_time)
+	First()
+	--[[for _,p in pairs(player.GetAll()) do
+		afk_time[GetTag(p)] = SysTime()
+	end
+	updateTimer(player.GetCount()) ]]
+
+	local msg = "Reset NoAFKPlayers.lua"
+	if (not caller:IsValid()) then
+		print(msg)
+	else
+		caller:PrintMessage(HUD_PRINTCONSOLE, msg)
 	end
 end
 
@@ -122,6 +143,20 @@ local function First()
 	if (player.GetCount() > 0) then
 		print("noafkplayers: created timer on Clk for every " .. tostring(delay*2/player.GetCount()) .. " seconds")
 	end
+
+	hook.Add("PlayerInitialSpawn", "AFK_Add_on_connect", function(ply)
+		afk_time[tonumber(GetTag(ply))] = SysTime()
+
+		updateTimer(player.GetCount())
+	end)
+
+	hook.Add("PlayerDisconnected", "AFK_rem_on_leave", function(ply)
+		table.remove(afk_time,tonumber(GetTag(ply)))
+
+		updateTimer(player.GetCount() - 1)
+	end)
+
+	updateTimer(player.GetCount())
 end
 
 local function updateTimer(count)
@@ -132,19 +167,8 @@ local function updateTimer(count)
 	--PrintMessage(HUD_PRINTCONSOLE, "noafkplayers: updated timer on Clk for every " .. tostring(0.500/player.count()) .. " seconds")
 end
 
-hook.Add("PlayerInitialSpawn", "AFK_Add_on_connect", function(ply)
-	afk_time[tonumber(GetTag(ply))] = SysTime()
+hook.Add("InitPostEntity", "InitNoAFKPlayers", First)
 
-	updateTimer(player.GetCount())
-end)
-
-hook.Add("PlayerDisconnected", "AFK_rem_on_leave", function(ply)
-	table.remove(afk_time,tonumber(GetTag(ply)))
-
-	updateTimer(player.GetCount() - 1)
-end)
-
-First()
 concommand.Add("gettag", PrintTag)
 concommand.Add("afkset", SetAfkTime)
 concommand.Add("afkstat", AFKStatus)
