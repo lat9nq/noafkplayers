@@ -28,12 +28,6 @@ local function GetTag(ply)
 	return ids[2] .. ids[3]
 end
 
-function PrintTag(ply)
-	if (ply:IsValid()) then
-		ply:PrintMessage(HUD_PRINTCONSOLE,GetTag(ply))
-	end
-end
-
 local function FindPlayer(ply_name)
 	local players = player.GetAll()
 	local ply = nil
@@ -44,6 +38,16 @@ local function FindPlayer(ply_name)
 		end
 	end
 	return ply
+end
+
+function PrintTag(caller, commands, args, argStr)
+	local ply = caller
+	if (argStr) then
+		ply = FindPlayer(argStr)
+	end
+	if (ply:IsValid()) then
+		caller:PrintMessage(HUD_PRINTCONSOLE,GetTag(ply))
+	end
 end
 
 function SetAfkTime(me, command, arguments)
@@ -60,8 +64,8 @@ function SetAfkTime(me, command, arguments)
 	if (ply ~= nil) then
 		local tag = tonumber(GetTag(ply))
 		afk_time[tag] = SysTime() - tonumber(res)
-		if (ply:IsValid()) then
-			ply:PrintMessage(HUD_PRINTCONSOLE, "You set the AFK time for " .. ply:GetName() .. " to " .. tostring(res) .. " seconds.")
+		if (me:IsValid()) then
+			me:PrintMessage(HUD_PRINTCONSOLE, "You set the AFK time for " .. ply:GetName() .. " to " .. tostring(res) .. " seconds.")
 		else
 			print("You set the AFK time for " .. ply:GetName() .. " to " .. tostring(res) .. " seconds.")
 		end
@@ -69,7 +73,12 @@ function SetAfkTime(me, command, arguments)
 end
 
 local function AFKStatus(caller)
-	caller:PrintMessage(HUD_PRINTCONSOLE, "NoAfkPlayers last ran " .. tostring(SysTime() - last_ran) .. " seconds ago...")
+	local diff = SysTime() - last_ran
+	caller:PrintMessage(HUD_PRINTCONSOLE, "NoAfkPlayers last ran " .. tostring(diff) .. " seconds ago...")
+	if (diff > 1.1) then
+		caller:PrintMessage("PANIC: Trying to retart the timer...")
+		updateTime(player.GetCount())
+	end
 	for id,x in pairs(afk_time) do
 		caller:PrintMessage(HUD_PRINTCONSOLE, tostring(id) .. ": " .. tostring(math.floor(SysTime() - x)))
 	end
@@ -91,7 +100,7 @@ local function Clk()
 	elseif (t + kick < SysTime() + delay) then
 		ply:Kick("Detected AFK after " .. tostring(math.floor(kick/60)).. " minutes")
 	end
-	last_run = SysTime()
+	last_ran = SysTime()
 end
 
 local function First() 
@@ -137,5 +146,5 @@ end)
 
 First()
 concommand.Add("gettag", PrintTag)
-concommand.Add("setafktime", SetAfkTime)
-concommand.Add("afkstatus", AFKStatus)
+concommand.Add("afkset", SetAfkTime)
+concommand.Add("afkstat", AFKStatus)
