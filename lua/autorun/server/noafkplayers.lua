@@ -77,7 +77,7 @@ local function AFKStatus(caller)
 	caller:PrintMessage(HUD_PRINTCONSOLE, "NoAfkPlayers last ran " .. tostring(diff) .. " seconds ago...")
 	if (diff > 1.1) then
 		caller:PrintMessage("PANIC: Trying to retart the timer...")
-		updateTimer(player.GetCount())
+		updateAfkTimer(player.GetCount())
 	end
 	for id,x in pairs(afk_time) do
 		caller:PrintMessage(HUD_PRINTCONSOLE, tostring(id) .. ": " .. tostring(math.floor(SysTime() - x)))
@@ -95,7 +95,7 @@ local function AFKReset(caller)
 	--[[for _,p in pairs(player.GetAll()) do
 		afk_time[GetTag(p)] = SysTime()
 	end
-	updateTimer(player.GetCount()) ]]
+	updateAfkTimer(player.GetCount()) ]]
 
 	local msg = "Reset NoAFKPlayers.lua"
 	if (not caller:IsValid()) then
@@ -124,6 +124,14 @@ local function Clk()
 	last_ran = SysTime()
 end
 
+local function updateAfkTimer(count)
+	timer.Remove("interval")
+	if (count > 0) then
+		timer.Create("interval", delay*2/count, 0, Clk)
+	end
+	--PrintMessage(HUD_PRINTCONSOLE, "noafkplayers: updated timer on Clk for every " .. tostring(0.500/player.count()) .. " seconds")
+end
+
 local function First() 
 	print("noafkplayers: starting...")
 	kick = 30 --EDIT THIS LINE TO CHANGE THE AFK TIME
@@ -147,24 +155,16 @@ local function First()
 	hook.Add("PlayerInitialSpawn", "AFK_Add_on_connect", function(ply)
 		afk_time[tonumber(GetTag(ply))] = SysTime()
 
-		updateTimer(player.GetCount())
+		updateAfkTimer(player.GetCount())
 	end)
 
 	hook.Add("PlayerDisconnected", "AFK_rem_on_leave", function(ply)
 		table.remove(afk_time,tonumber(GetTag(ply)))
 
-		updateTimer(player.GetCount() - 1)
+		updateAfkTimer(player.GetCount() - 1)
 	end)
 
-	updateTimer(player.GetCount())
-end
-
-local function updateTimer(count)
-	timer.Remove("interval")
-	if (count > 0) then
-		timer.Create("interval", delay*2/count, 0, Clk)
-	end
-	--PrintMessage(HUD_PRINTCONSOLE, "noafkplayers: updated timer on Clk for every " .. tostring(0.500/player.count()) .. " seconds")
+	updateAfkTimer(player.GetCount())
 end
 
 hook.Add("InitPostEntity", "InitNoAFKPlayers", First)
