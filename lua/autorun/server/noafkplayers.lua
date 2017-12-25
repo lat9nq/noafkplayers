@@ -40,6 +40,33 @@ local function FindPlayer(ply_name)
 	return ply
 end
 
+local function Clk()
+	ind = (ind % player.GetCount()) + 1
+	local players = player.GetAll()
+	local ply = players[ind]
+	local tag = tonumber(GetTag(ply))
+	local t = afk_time[tag]
+	--[[if (ind == 1) then
+		PrintMessage(HUD_PRINTCONSOLE, "noafkplayers: reiterating on " .. tostring(ply:GetName()) .. " who moved at " .. tostring(t))
+	end--]]
+	if (t == nil) then return end --not completely joined in
+	if (t + warn > SysTime() - delay and t + warn < SysTime() + delay) then
+		ply:ChatPrint("You will be kicked in " .. tostring(math.floor((kick-warn)/60)) .. " minutes if you do not do anything.")
+	--elseif (t + prep > SysTime() - delay and t + prep < SysTime() + delay) then
+	elseif (t + kick < SysTime() + delay) then
+		ply:Kick("Detected AFK after " .. tostring(math.floor(kick/60)).. " minutes")
+	end
+	last_ran = SysTime()
+end
+
+function updateAfkTimer(count)
+	timer.Remove("interval")
+	if (count > 0) then
+		timer.Create("interval", delay*2/count, 0, Clk)
+	end
+	--PrintMessage(HUD_PRINTCONSOLE, "noafkplayers: updated timer on Clk for every " .. tostring(0.500/player.count()) .. " seconds")
+end
+
 function PrintTag(caller, commands, args, argStr)
 	local ply = caller
 	if (argStr) then
@@ -74,62 +101,29 @@ end
 
 local function AFKStatus(caller)
 	local diff = SysTime() - last_ran
-	caller:PrintMessage(HUD_PRINTCONSOLE, "NoAfkPlayers last ran " .. tostring(diff) .. " seconds ago...")
+	local msg = "NoAfkPlayers last ran " .. tostring(diff) .. " seconds ago..."
+	if (caller:IsValid()) then
+		caller:PrintMessage(HUD_PRINTCONSOLE, msg)
+	else
+		print(msg)
+	end
 	if (diff > 1.1) then
-		caller:PrintMessage("PANIC: Trying to retart the timer...")
+		msg = "PANIC: Trying to retart the timer..."
+		if (caller:IsValid()) then
+			caller:PrintMessage(HUD_PRINTCONSOLE, msg)
+		else
+			print(msg)
+		end
 		updateAfkTimer(player.GetCount())
 	end
 	for id,x in pairs(afk_time) do
-		caller:PrintMessage(HUD_PRINTCONSOLE, tostring(id) .. ": " .. tostring(math.floor(SysTime() - x)))
+		msg = tostring(id) .. ": " .. tostring(math.floor(SysTime() - x))
+		if caller:IsValid() then
+			caller:PrintMessage(HUD_PRINTCONSOLE, msg)
+		else
+			print(msg)
+		end
 	end
-end
-
-local function AFKReset(caller)
-	if (caller:IsValid() and not caller:IsAdmin()) then
-		caller:PrintMessage("You do not have access to this command!")
-		return
-	end
-
-	table.Empty(afk_time)
-	First()
-	--[[for _,p in pairs(player.GetAll()) do
-		afk_time[GetTag(p)] = SysTime()
-	end
-	updateAfkTimer(player.GetCount()) ]]
-
-	local msg = "Reset NoAFKPlayers.lua"
-	if (not caller:IsValid()) then
-		print(msg)
-	else
-		caller:PrintMessage(HUD_PRINTCONSOLE, msg)
-	end
-end
-
-local function Clk()
-	ind = (ind % player.GetCount()) + 1
-	local players = player.GetAll()
-	local ply = players[ind]
-	local tag = tonumber(GetTag(ply))
-	local t = afk_time[tag]
-	--[[if (ind == 1) then
-		PrintMessage(HUD_PRINTCONSOLE, "noafkplayers: reiterating on " .. tostring(ply:GetName()) .. " who moved at " .. tostring(t))
-	end--]]
-	if (t == nil) then return end --not completely joined in
-	if (t + warn > SysTime() - delay and t + warn < SysTime() + delay) then
-		ply:ChatPrint("You will be kicked in " .. tostring(math.floor((kick-warn)/60)) .. " minutes if you do not do anything.")
-	--elseif (t + prep > SysTime() - delay and t + prep < SysTime() + delay) then
-	elseif (t + kick < SysTime() + delay) then
-		ply:Kick("Detected AFK after " .. tostring(math.floor(kick/60)).. " minutes")
-	end
-	last_ran = SysTime()
-end
-
-local function updateAfkTimer(count)
-	timer.Remove("interval")
-	if (count > 0) then
-		timer.Create("interval", delay*2/count, 0, Clk)
-	end
-	--PrintMessage(HUD_PRINTCONSOLE, "noafkplayers: updated timer on Clk for every " .. tostring(0.500/player.count()) .. " seconds")
 end
 
 local function First() 
@@ -159,12 +153,34 @@ local function First()
 	end)
 
 	hook.Add("PlayerDisconnected", "AFK_rem_on_leave", function(ply)
-		table.remove(afk_time,tonumber(GetTag(ply)))
+		--table.remove(afk_time,tonumber(GetTag(ply)))
+		afk_time[tonumber(GetTag(ply))] = nil
 
 		updateAfkTimer(player.GetCount() - 1)
 	end)
 
 	updateAfkTimer(player.GetCount())
+end
+
+local function AFKReset(caller)
+	if (caller:IsValid() and not caller:IsAdmin()) then
+		caller:PrintMessage("You do not have access to this command!")
+		return
+	end
+
+	table.Empty(afk_time)
+	First()
+	--[[for _,p in pairs(player.GetAll()) do
+		afk_time[GetTag(p)] = SysTime()
+	end
+	updateAfkTimer(player.GetCount()) ]]
+
+	local msg = "Reset NoAFKPlayers.lua"
+	if (not caller:IsValid()) then
+		print(msg)
+	else
+		caller:PrintMessage(HUD_PRINTCONSOLE, msg)
+	end
 end
 
 hook.Add("InitPostEntity", "InitNoAFKPlayers", First)
